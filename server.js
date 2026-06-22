@@ -31,6 +31,8 @@ app.post('/api/vmp', (req, res) => {
     res.json({ s1, s2, s3, s4, s5 });
 });
 
-app.listen(3000, () => {
-    console.log('Server running on http://localhost:3000');
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
