@@ -1,0 +1,1083 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Solar PV String Voltage Calculator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+  --voc-primary: #3B82F6;
+  --voc-light: #162235;
+  --voc-border: #28466B;
+  --voc-primary-dark: #93C5FD;
+
+  --vmp-primary: #22C55E;
+  --vmp-light: #14271A;
+  --vmp-border: #29523A;
+  --vmp-primary-dark: #86EFAC;
+
+  --bg: #0B1120;
+  --text: #E2E8F0;
+  --text-secondary: #94A3B8;
+  --card-bg: #111827;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,.35);
+  --shadow-md: 0 4px 10px rgba(0,0,0,.35);
+  --shadow-lg: 0 10px 24px rgba(0,0,0,.45);
+}
+
+  html { -webkit-font-smoothing: antialiased; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0B1120;
+    background-image:
+      radial-gradient(circle at 10% 0%, rgba(59,130,246,.10), transparent 35%),
+      radial-gradient(circle at 90% 100%, rgba(34,197,94,.08), transparent 35%);
+    color: var(--text);
+    height: 100vh;
+    overflow: hidden;
+    padding: 16px;
+    animation: pageFade 0.5s ease both;
+  }
+
+  @keyframes pageFade {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .app-shell {
+    max-width: 1480px;
+    height: 100%;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ============ HEADER ============ */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background: #1E293B;
+    border-radius: 16px;
+    padding: 12px 22px;
+    margin-bottom: 14px;
+    box-shadow: var(--shadow-md);
+    flex-shrink: 0;
+  }
+
+  .topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .brand-mark {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2563EB 0%, #16A34A 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .brand-mark svg { width: 21px; height: 21px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+  .topbar-text h1 {
+    font-size: 19px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    color: var(--text);
+    line-height: 1.2;
+  }
+  .topbar-text p {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-weight: 500;
+  }
+  .topbar-text p .dot { color: #cbd5e1; margin: 0 8px; }
+  .topbar-text p .voc-tag { color: var(--voc-primary); font-weight: 600; }
+  .topbar-text p .vmp-tag { color: var(--vmp-primary); font-weight: 600; }
+
+  .reset-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--card-bg);
+    border: 1px solid #334155;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    border-radius: 11px;
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s, color 0.2s;
+    flex-shrink: 0;
+  }
+  .reset-btn svg { width: 15px; height: 15px; stroke: var(--text-secondary); fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; transition: stroke 0.2s, transform 0.4s; }
+  .reset-btn:hover {
+    border-color: #CBD5E1;
+    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+  }
+  .reset-btn:hover svg { transform: rotate(-70deg); }
+  .reset-btn:active { transform: translateY(0); }
+
+  /* ============ MAIN LAYOUT ============ */
+  .main-layout {
+    display: grid;
+    grid-template-columns: 230px 1fr;
+    gap: 16px;
+    align-items: stretch;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ============ SIDEBAR ============ */
+  .sidebar {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 16px 16px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    overflow-y: auto;
+  }
+
+  .side-block { display: flex; flex-direction: column; gap: 7px; }
+
+  .side-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .side-title .icon-chip {
+    width: 21px; height: 21px;
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .side-title .icon-chip svg { width: 11px; height: 11px; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+  .chip-amber { background: #FEF3C7; } .chip-amber svg { stroke: #D97706; }
+  .chip-sky { background: #DBEAFE; } .chip-sky svg { stroke: #2563EB; }
+  .chip-violet { background: #EDE9FE; } .chip-violet svg { stroke: #7C3AED; }
+
+  .side-body {
+    font-size: 11px;
+    line-height: 1.5;
+    color: var(--text-secondary);
+  }
+
+  .side-divider { height: 1px; background: rgba(255,255,255,.08); margin: 0; }
+
+  .howto-list { display: flex; flex-direction: column; gap: 8px; }
+  .howto-item { display: flex; gap: 8px; align-items: flex-start; }
+  .howto-num {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--voc-light);
+    color: var(--voc-primary);
+    font-size: 9.5px;
+    font-weight: 700;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+  .howto-text { font-size: 11px; line-height: 1.45; color: var(--text-secondary); }
+
+  .formula-mini {
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 10.5px;
+    line-height: 1.4;
+    font-style: italic;
+  }
+  .formula-mini.voc { background: var(--voc-light); border: 1px solid var(--voc-border); color: var(--voc-primary-dark); }
+  .formula-mini.vmp { background: var(--vmp-light); border: 1px solid var(--vmp-border); color: var(--vmp-primary-dark); margin-top: 6px; }
+  .formula-mini-label { font-size: 10px; font-weight: 700; color: var(--text); margin-bottom: 4px; font-style: normal; }
+
+  /* ============ CALC GRID ============ */
+  .calc-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .calc-card {
+    background: var(--card-bg);
+    border-radius: 16px;
+    padding: 16px 20px;
+    box-shadow: var(--shadow-md);
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    transition: box-shadow 0.25s, transform 0.25s;
+    overflow-y: auto;
+    min-height: 0;
+  }
+  .calc-card:hover { box-shadow: var(--shadow-lg); }
+
+  .left-calc  { --accent: var(--voc-primary); --accent-dark: var(--voc-primary-dark); --accent-light: var(--voc-light); --accent-border: var(--voc-border); }
+  .right-calc { --accent: var(--vmp-primary); --accent-dark: var(--vmp-primary-dark); --accent-light: var(--vmp-light); --accent-border: var(--vmp-border); }
+
+  .calc-header { display: flex; align-items: flex-start; gap: 11px; }
+  .calc-badge {
+    width: 34px; height: 34px;
+    border-radius: 10px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .calc-badge svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .calc-header h2 {
+    font-size: 14.5px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.25;
+  }
+  .calc-header .step-tag {
+    display: inline-flex;
+    width: 17px; height: 17px;
+    border-radius: 50%;
+    background: #1E293B;
+    color: var(--accent-dark);
+    font-size: 10px;
+    font-weight: 700;
+    align-items: center;
+    justify-content: center;
+    margin-right: 6px;
+  }
+  .calc-header .subtitle {
+    font-size: 11.5px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+    font-weight: 500;
+  }
+
+  .formula-box {
+    background: var(--accent-light);
+    border: 1px solid var(--accent-border);
+    border-radius: 11px;
+    padding: 9px 14px;
+    font-size: 12.5px;
+    font-style: italic;
+    color: var(--accent-dark);
+    text-align: center;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+  }
+
+  .section-title {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent-dark);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .section-title .icon-wrap {
+    width: 19px; height: 19px;
+    border-radius: 6px;
+    background: var(--accent-light);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .section-title svg {
+    width: 11px; height: 11px;
+    stroke: var(--accent);
+    fill: none; stroke-width: 2.2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+
+  .field { margin-bottom: 10px; }
+  .field:last-child { margin-bottom: 0; }
+
+  .field-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .field-label-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    flex: 1;
+  }
+  .field-icon {
+    width: 18px; height: 18px;
+    border-radius: 6px;
+    background: var(--accent-light);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .field-icon svg { width: 10.5px; height: 10.5px; stroke: var(--accent-dark); fill: none; stroke-width: 2.3; stroke-linecap: round; stroke-linejoin: round; }
+  .field label {
+    font-size: 14px;
+    color: var(--text);
+    font-weight: 500;
+    line-height: 1.3;
+  }
+  .field .hint {
+    font-size: 10px;
+    color: #94A3B8;
+    margin-top: 3px;
+    line-height: 1.35;
+    margin-left: 28px;
+  }
+
+  .input-row {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    flex-shrink: 0;
+  }
+  .input-row input {
+    width: 108px;
+    min-width: 0;
+    padding: 7px 10px;
+    border: 1.5px solid var(--accent-border);
+    border-radius: 9px;
+    font-size: 19px;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    text-align: right;
+    color: var(--accent-dark);
+    font-weight: 700;
+    background: var(--accent-light);
+    outline: none;
+    transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  }
+  .input-row input::placeholder {
+    color: #B9C6DA;
+    font-weight: 500;
+    opacity: 0.1;
+  }
+  .input-row input:focus {
+    border-color: var(--accent);
+    background: #273449;
+    box-shadow: 0 0 0 3px var(--accent-light), 0 0 0 1px var(--accent);
+  }
+  .unit {
+    font-size: 11px;
+    color: var(--text-secondary);
+    font-weight: 600;
+    width: 26px;
+    flex-shrink: 0;
+  }
+
+  /* --- Validation --- */
+  .info-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #334155;
+    color: #64748B;
+    font-size: 9.5px;
+    font-weight: 700;
+    cursor: help;
+    position: relative;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s;
+  }
+  .info-icon:hover { background: var(--accent); color: #fff; }
+  .info-icon:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 135%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1E293B;
+    color: #fff;
+    padding: 9px 13px;
+    border-radius: 8px;
+    font-size: 11.5px;
+    font-weight: 400;
+    white-space: normal;
+    width: 200px;
+    text-align: center;
+    line-height: 1.45;
+    z-index: 10;
+    box-shadow: var(--shadow-lg);
+  }
+  .info-icon:hover::before {
+    content: '';
+    position: absolute;
+    bottom: 118%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: #1E293B;
+  }
+  .error-msg {
+    font-size: 10px;
+    color: #DC2626;
+    margin-top: 3px;
+    line-height: 1.35;
+    display: none;
+    font-weight: 500;
+    text-align: right;
+  }
+  .error-msg.show { display: block; }
+  .input-row input.invalid {
+    border-color: #DC2626 !important;
+    background: #FEF2F2 !important;
+    color: #DC2626 !important;
+  }
+  .input-row input.invalid:focus {
+    box-shadow: 0 0 0 3px #FEE2E2, 0 0 0 1px #DC2626 !important;
+  }
+
+  .divider {
+    height: 1px;
+    background: rgba(255,255,255,.08);
+  }
+
+  /* ============ STEP TABLE ============ */
+  .step-table { display: flex; flex-direction: column; }
+  .step-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    font-size: 11.5px;
+    border-radius: 8px;
+  }
+  .step-row:nth-child(odd) { background: rgba(255,255,255,.03); }
+  .step-num {
+    font-size: 9.5px;
+    font-weight: 700;
+    color: var(--accent-dark);
+    background: var(--accent-light);
+    min-width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .step-label {
+    color: var(--text-secondary);
+    flex: 1;
+    line-height: 1.3;
+    font-weight: 500;
+  }
+  .step-value {
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    min-width: 76px;
+    text-align: right;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    font-size: 11.5px;
+  }
+
+  /* ============ RESULT CARD ============ */
+  .result-card {
+    background: var(--accent-light);
+    border: 1.5px solid var(--accent);
+    border-radius: 13px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: auto;
+    box-shadow: var(--shadow-sm);
+  }
+  .result-icon {
+    width: 36px; height: 36px;
+    border-radius: 10px;
+    background: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    box-shadow: var(--shadow-sm);
+  }
+  .result-icon svg { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .result-text { flex: 1; min-width: 0; }
+  .result-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .result-sub {
+    font-size: 10.5px;
+    color: var(--text-secondary);
+    margin-top: 1px;
+    font-weight: 500;
+  }
+  .result-value {
+    font-size: 23px;
+    font-weight: 700;
+    color: var(--accent-dark);
+    white-space: nowrap;
+    font-family: 'JetBrains Mono', 'SF Mono', monospace;
+    letter-spacing: -0.01em;
+  }
+
+  .note {
+    font-size: 10.5px;
+    color: #B0BAC7;
+    text-align: center;
+    margin-top: -4px;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 10px;
+    font-size: 10.5px;
+    color: #B0BAC7;
+    font-weight: 500;
+    flex-shrink: 0;
+  }
+
+  /* ============ RESPONSIVE ============ */
+  @media (max-width: 1024px) {
+    body { height: auto; overflow: auto; min-height: 100vh; }
+    .main-layout { grid-template-columns: 1fr; height: auto; }
+    .sidebar { overflow-y: visible; }
+    .calc-card { overflow-y: visible; }
+  }
+
+  @media (max-width: 760px) {
+    body { padding: 16px; }
+    .topbar { flex-direction: column; align-items: stretch; gap: 16px; padding: 18px; }
+    .reset-btn { justify-content: center; }
+    .calc-grid { grid-template-columns: 1fr; }
+    .calc-card { padding: 20px; }
+    .result-value { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+
+  <!-- ============ HEADER ============ -->
+  <div class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-mark">
+        <svg viewBox="0 0 24 24"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>
+      </div>
+      <div class="topbar-text">
+        <h1>Solar PV String Voltage Calculator</h1>
+        <p><span class="voc-tag">Blue fields</span> = Voc inputs<span class="dot">&middot;</span><span class="vmp-tag">Green fields</span> = Vmp inputs<span class="dot">&middot;</span>Results update automatically</p>
+      </div>
+    </div>
+    <button class="reset-btn" type="button" onclick="resetAll()">
+      <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+      Reset All
+    </button>
+  </div>
+
+  <!-- ============ MAIN LAYOUT ============ -->
+  <div class="main-layout">
+
+    <!-- ============ SIDEBAR ============ -->
+    <aside class="sidebar">
+
+      <div class="side-block">
+        <div class="side-title">
+          <span class="icon-chip chip-amber"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span>
+          About This Calculator
+        </div>
+        <p class="side-body">Calculates the maximum open-circuit voltage (Voc) and minimum operating voltage (Vmp) of a solar PV string, corrected for site temperature extremes &mdash; essential for sizing strings within inverter voltage limits.</p>
+      </div>
+
+      <div class="side-divider"></div>
+
+      <div class="side-block">
+        <div class="side-title">
+          <span class="icon-chip chip-sky"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+          How to Use
+        </div>
+        <div class="howto-list">
+          <div class="howto-item">
+            <span class="howto-num">1</span>
+            <span class="howto-text">Enter the input parameters in the blue (Voc) and green (Vmp) fields.</span>
+          </div>
+          <div class="howto-item">
+            <span class="howto-num">2</span>
+            <span class="howto-text">Values are validated instantly and results recalculate as you type.</span>
+          </div>
+          <div class="howto-item">
+            <span class="howto-num">3</span>
+            <span class="howto-text">Review the step-by-step breakdown and the final result card.</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-divider"></div>
+
+      <div class="side-block">
+        <div class="side-title">
+          <span class="icon-chip chip-violet"><svg viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+          Key Formulas
+        </div>
+        <div class="formula-mini voc">
+          <div class="formula-mini-label">Maximum Voc</div>
+          V<sub>OCMax</sub> = V<sub>OCModule</sub> &times; M + &gamma;<sub>Voc</sub> &times; (T<sub>min</sub> &minus; T<sub>STC</sub>) &times; M
+        </div>
+        <div class="formula-mini vmp">
+          <div class="formula-mini-label">Minimum Vmp</div>
+          V<sub>mpMin</sub> = V<sub>mpModule</sub> &times; M + &gamma;<sub>Pmp</sub> &times; (T<sub>cell</sub> &minus; T<sub>STC</sub>) &times; M
+        </div>
+      </div>
+
+    </aside>
+
+    <!-- ============ CALCULATORS ============ -->
+    <div class="calc-grid">
+
+      <!-- LEFT: Voc Max Calculator -->
+      <div class="calc-card left-calc">
+        <div class="calc-header">
+          <div class="calc-badge">
+            <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          </div>
+          <div>
+            <h2><span class="step-tag">1</span>Maximum Open Circuit Voltage (Voc)</h2>
+            <div class="subtitle">Voc corrected to the lowest expected site temperature</div>
+          </div>
+        </div>
+
+        <div class="formula-box">
+          V<sub>OCMax</sub> = V<sub>OCModule</sub> &times; M + &gamma;<sub>Voc</sub> &times; (T<sub>min</sub> &minus; T<sub>STC</sub>) &times; M
+        </div>
+
+        <div>
+          <div class="section-title">
+            <span class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
+            Input Parameters
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+                <label>Panel Voc at STC (V<sub>OCModule</sub>)</label>
+                <span class="info-icon" data-tooltip="The value must be between 10 to 50 (inclusive) and must be positive">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="voc" value="" placeholder="37.00" step="0.01" oninput="calcVoc()">
+                <span class="unit">V</span>
+              </div>
+            </div>
+            <div class="error-msg" id="voc_error">Must be between 10 and 50, and positive.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg></span>
+                <label>Temperature coefficient &gamma;<sub>Voc</sub></label>
+                <span class="info-icon" data-tooltip="The value must be between 0 to 2 (inclusive) and must be positive">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="gamma_voc" value="" placeholder="0.24" step="0.01" oninput="calcVoc()">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="hint">Enter as positive %. e.g. &minus;0.28% &rarr; enter 0.28</div>
+            <div class="error-msg" id="gamma_voc_error">Must be between 0 and 2, and positive.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M23 12l-2.44-2.44.61-3.34-3.34.61L17.44 4 12 8 6.56 4 6.16 6.83l-3.34-.61.61 3.34L1 12l2.44 2.44-.61 3.34 3.34-.61.4 2.83L12 16l5.44 4 .4-2.83 3.34.61-.61-3.34L23 12z" style="display:none"/><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></span>
+                <label>Minimum temperature T<sub>min</sub></label>
+                <span class="info-icon" data-tooltip="The value must be between -40 to 20 (inclusive)">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="tmin" value="" placeholder="-5.00" step="0.1" oninput="calcVoc()">
+                <span class="unit">&deg;C</span>
+              </div>
+            </div>
+            <div class="error-msg" id="tmin_error">Must be between -40 and 20.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+                <label>Number of panels in string (M)</label>
+                <span class="info-icon" data-tooltip="The value must be greater than 0">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="m_voc" value="" placeholder="1" step="1" min="1" oninput="calcVoc()">
+                <span class="unit">pcs</span>
+              </div>
+            </div>
+            <div class="error-msg" id="m_voc_error">Must be greater than 0.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
+                <label>T<sub>STC</sub> (standard test condition)</label>
+              </div>
+              <div class="input-row">
+                <input type="number" id="tstc_voc" value="25.00" step="0.1" oninput="calcVoc()">
+                <span class="unit">&deg;C</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <div class="section-title">
+            <span class="icon-wrap"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg></span>
+            Step-by-Step Calculation
+          </div>
+          <div class="step-table">
+            <div class="step-row">
+              <span class="step-num">1</span>
+              <span class="step-label">Temperature difference [T<sub>min</sub> &minus; T<sub>STC</sub>]</span>
+              <span class="step-value"><span id="v_s1">-30.000</span> &deg;C</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">2</span>
+              <span class="step-label">Convert &gamma;<sub>Voc</sub> to decimal [&gamma;<sub>Voc</sub> / 100]</span>
+              <span class="step-value"><span id="v_s2">0.0024</span> /&deg;C</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">3</span>
+              <span class="step-label">Voltage correction [V<sub>OCModule</sub> &times; &gamma;<sub>dec</sub> &times; &Delta;T &times; M]</span>
+              <span class="step-value"><span id="v_s3">2.664</span> V</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">4</span>
+              <span class="step-label">Base voltage &times; M [V<sub>OCModule</sub> &times; M]</span>
+              <span class="step-value"><span id="v_s4">37.000</span> V</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">5</span>
+              <span class="step-label">Total V<sub>OCMax</sub> [Base voltage + Correction]</span>
+              <span class="step-value"><span id="v_s5">39.664</span> V</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-card">
+          <div class="result-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M9 14l-2 8 5-3 5 3-2-8"/></svg>
+          </div>
+          <div class="result-text">
+            <div class="result-label">Maximum voltage of the string (Voc)</div>
+            <div class="result-sub">at lowest expected site temperature</div>
+          </div>
+          <div class="result-value" id="voc_result">39.66 V</div>
+        </div>
+        <div class="note">* Assuming panels will be mounted parallel to the roof</div>
+      </div>
+
+      <!-- RIGHT: Vmp Min Calculator -->
+      <div class="calc-card right-calc">
+        <div class="calc-header">
+          <div class="calc-badge">
+            <svg viewBox="0 0 24 24"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg>
+          </div>
+          <div>
+            <h2><span class="step-tag">2</span>Minimum Voltage of a String (Vmp)</h2>
+            <div class="subtitle">Vmp corrected to the highest expected site temperature</div>
+          </div>
+        </div>
+
+        <div class="formula-box">
+          V<sub>mpMin</sub> = V<sub>mpModule</sub> &times; M + &gamma;<sub>Pmp</sub> &times; (T<sub>cell</sub> &minus; T<sub>STC</sub>) &times; M
+        </div>
+
+        <div>
+          <div class="section-title">
+            <span class="icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5z"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></span>
+            Input Parameters
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg></span>
+                <label>Panel Vmp at STC (V<sub>mpModule</sub>)</label>
+                <span class="info-icon" data-tooltip="The value must be between 10 to 50 (inclusive) and must be positive">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="vmp" value="" placeholder="31.65" step="0.01" oninput="calcVmp()">
+                <span class="unit">V</span>
+              </div>
+            </div>
+            <div class="error-msg" id="vmp_error">Must be between 10 and 50, and positive.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><path d="M14 14.76V3.5a2.5 2.5 0 0 0-5 0v11.26a4.5 4.5 0 1 0 5 0z"/></svg></span>
+                <label>Temperature coefficient &gamma;<sub>Pmp</sub></label>
+                <span class="info-icon" data-tooltip="The value must be between 0 to 2 (inclusive) and must be positive">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="gamma_pmp" value="" placeholder="0.29" step="0.01" oninput="calcVmp()">
+                <span class="unit">%</span>
+              </div>
+            </div>
+            <div class="hint">Enter as positive %. e.g. &minus;0.35% &rarr; enter 0.35</div>
+            <div class="error-msg" id="gamma_pmp_error">Must be between 0 and 2, and positive.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span>
+                <label>Maximum temperature (T<sub>max</sub>)</label>
+                <span class="info-icon" data-tooltip="The value must be between 5 to 85 (inclusive)">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="tmax" value="" placeholder="45.6" step="0.1" oninput="calcVmp()">
+                <span class="unit">&deg;C</span>
+              </div>
+            </div>
+            <div class="error-msg" id="tmax_error">Must be between 5 and 85.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
+                <label>Number of panels in string (M)</label>
+                <span class="info-icon" data-tooltip="The value must be greater than 0">?</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="m_vmp" value="" placeholder="1" step="1" min="1" oninput="calcVmp()">
+                <span class="unit">pcs</span>
+              </div>
+            </div>
+            <div class="error-msg" id="m_vmp_error">Must be greater than 0.</div>
+          </div>
+
+          <div class="field">
+            <div class="field-row">
+              <div class="field-label-group">
+                <span class="field-icon"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="16" y1="2" x2="16" y2="6"/></svg></span>
+                <label>T<sub>STC</sub> (standard test condition)</label>
+              </div>
+              <div class="input-row">
+                <input type="number" id="tstc_vmp" value="-10" step="0.1" oninput="calcVmp()">
+                <span class="unit">&deg;C</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div>
+          <div class="section-title">
+            <span class="icon-wrap"><svg viewBox="0 0 24 24"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="12" y2="14"/></svg></span>
+            Step-by-Step Calculation
+          </div>
+          <div class="step-table">
+            <div class="step-row">
+              <span class="step-num">1</span>
+              <span class="step-label">Temperature difference [T<sub>cell</sub> &minus; T<sub>STC</sub>]</span>
+              <span class="step-value"><span id="p_s1">55.600</span> &deg;C</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">2</span>
+              <span class="step-label">Convert &gamma;<sub>Pmp</sub> to decimal [&gamma;<sub>Pmp</sub> / 100]</span>
+              <span class="step-value"><span id="p_s2">0.0029</span> /&deg;C</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">3</span>
+              <span class="step-label">Voltage correction [V<sub>mpModule</sub> &times; &gamma;<sub>dec</sub> &times; &Delta;T &times; M]</span>
+              <span class="step-value"><span id="p_s3">-5.103</span> V</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">4</span>
+              <span class="step-label">Base voltage &times; M [V<sub>mpModule</sub> &times; M]</span>
+              <span class="step-value"><span id="p_s4">31.650</span> V</span>
+            </div>
+            <div class="step-row">
+              <span class="step-num">5</span>
+              <span class="step-label">Total V<sub>mpMin</sub> [Base voltage + Correction]</span>
+              <span class="step-value"><span id="p_s5">26.547</span> V</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="result-card">
+          <div class="result-icon">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M9 14l-2 8 5-3 5 3-2-8"/></svg>
+          </div>
+          <div class="result-text">
+            <div class="result-label">Minimum voltage of the string (Vmp)</div>
+            <div class="result-sub">at highest expected site temperature</div>
+          </div>
+          <div class="result-value" id="vmp_result">26.55 V</div>
+        </div>
+        <div class="note">* Assuming panels will be mounted parallel to the roof</div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>Solar PV String Voltage Calculator &nbsp;&mdash;&nbsp; Both calculators auto-update on input</footer>
+
+</div>
+
+<script>
+  // Generic field validator: shows the red border + error text under a field
+  // when the value falls outside [min, max], or fails the "exclusiveMin" check
+  // (e.g. "must be greater than 0" instead of "must be >= 0").
+  function validateField(id, min, max, exclusiveMin) {
+    const input = document.getElementById(id);
+    const errorEl = document.getElementById(id + '_error');
+    const raw = input.value.trim();
+
+    // Empty field = neutral state, no error shown yet (e.g. on page load / after reset).
+    if (raw === '') {
+      input.classList.remove('invalid');
+      if (errorEl) errorEl.classList.remove('show');
+      return false;
+    }
+
+    const value = parseFloat(raw);
+
+    let valid = !isNaN(value);
+    if (valid) {
+      valid = exclusiveMin ? value > min : value >= min;
+      if (valid && max !== null) valid = value <= max;
+    }
+
+    input.classList.toggle('invalid', !valid);
+    if (errorEl) errorEl.classList.toggle('show', !valid);
+    return valid;
+  }
+
+  async function calcVoc() {
+
+    validateField('voc', 10, 50, false);
+    validateField('gamma_voc', 0, 2, false);
+    validateField('tmin', -40, 20, false);
+    validateField('m_voc', 0, null, true);
+
+    const voc   = parseFloat(document.getElementById('voc').value) || 0;
+    const gamma = parseFloat(document.getElementById('gamma_voc').value) || 0;
+    const tmin  = parseFloat(document.getElementById('tmin').value) || 0;
+    const m     = parseFloat(document.getElementById('m_voc').value) || 1;
+    const tstc  = parseFloat(document.getElementById('tstc_voc').value) || 25;
+
+    const response = await fetch('/api/voc', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            voc,
+            gamma,
+            tmin,
+            m,
+            tstc
+        })
+    });
+
+    const data = await response.json();
+
+    document.getElementById('v_s1').textContent = data.s1.toFixed(3);
+    document.getElementById('v_s2').textContent = data.s2.toFixed(4);
+    document.getElementById('v_s3').textContent = data.s3.toFixed(3);
+    document.getElementById('v_s4').textContent = data.s4.toFixed(3);
+    document.getElementById('v_s5').textContent = data.s5.toFixed(3);
+    document.getElementById('voc_result').textContent =
+        data.s5.toFixed(2) + ' V';
+}
+
+  async function calcVmp() {
+
+    validateField('vmp', 10, 50, false);
+    validateField('gamma_pmp', 0, 2, false);
+    validateField('tmax', 5, 85, false);
+    validateField('m_vmp', 0, null, true);
+
+    const vmp   = parseFloat(document.getElementById('vmp').value) || 0;
+    const gamma = parseFloat(document.getElementById('gamma_pmp').value) || 0;
+    const tmax  = parseFloat(document.getElementById('tmax').value) || 0;
+    const m     = parseFloat(document.getElementById('m_vmp').value) || 1;
+    const tstc  = parseFloat(document.getElementById('tstc_vmp').value) || -10;
+
+    const response = await fetch('/api/vmp', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            vmp,
+            gamma,
+            tmax,
+            m,
+            tstc
+        })
+    });
+
+    const data = await response.json();
+
+    document.getElementById('p_s1').textContent = data.s1.toFixed(3);
+    document.getElementById('p_s2').textContent = data.s2.toFixed(4);
+    document.getElementById('p_s3').textContent = data.s3.toFixed(3);
+    document.getElementById('p_s4').textContent = data.s4.toFixed(3);
+    document.getElementById('p_s5').textContent = data.s5.toFixed(3);
+    document.getElementById('vmp_result').textContent =
+        data.s5.toFixed(2) + ' V';
+}
+
+  function resetAll() {
+    document.getElementById('voc').value = '';
+    document.getElementById('gamma_voc').value = '';
+    document.getElementById('tmin').value = '';
+    document.getElementById('m_voc').value = '';
+    document.getElementById('tstc_voc').value = '25';
+
+    document.getElementById('vmp').value = '';
+    document.getElementById('gamma_pmp').value = '';
+    document.getElementById('tmax').value = '';
+    document.getElementById('m_vmp').value = '';
+    document.getElementById('tstc_vmp').value = '-10';
+
+    calcVoc();
+    calcVmp();
+  }
+
+  calcVoc();
+  calcVmp();
+</script>
+</body>
+</html>
